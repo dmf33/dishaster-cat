@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dishaster Cat</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="page">
+    <header class="hud">
+      <div class="hud__group">
+        <span class="hud__label">Score</span>
+        <span id="score-value" class="hud__value">0</span>
+      </div>
+      <h1 class="title">Dishaster Cat</h1>
+      <div class="hud__group hud__group--right">
+        <span class="hud__label">Time</span>
+        <span id="timer-value" class="hud__value">45</span>
+      </div>
+    </header>
+
+    <section class="game-shell">
+      <div id="game-container" class="game-container" aria-label="Dishaster Cat game"></div>
+
+      <div id="overlay" class="overlay overlay--hidden" aria-live="polite">
+        <div class="overlay__panel">
+          <p id="overlay-eyebrow" class="overlay__eyebrow">Time's up</p>
+          <h2 id="overlay-title">Game Over</h2>
+          <p id="final-score" class="overlay__score">Final Score: 0</p>
+          <button id="restart-button" class="restart-button" type="button">Restart</button>
+        </div>
+      </div>
+    </section>
+
+    <p class="instructions">Move with the arrow keys. Press space to jump and knock dishes off the shelves.</p>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
