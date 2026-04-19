@@ -86,11 +86,6 @@ body {
   align-items: end;
   justify-content: space-between;
   padding: 18px;
-  pointer-events: none;
-}
-
-.mobile-controls__joystick,
-.mobile-controls__jump {
   pointer-events: auto;
 }
 
