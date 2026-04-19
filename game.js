@@ -15,6 +15,8 @@ const PLAYER_SPEED = 230;
 const JUMP_SPEED = 430;
 const PLAYER_START_X = 96;
 const PLAYER_BODY_HEIGHT = 42;
+const TOUCH_MOVE_THRESHOLD = 14;
+const TOUCH_JUMP_THRESHOLD = 48;
 const FLOOR_BREAK_Y = GAME_HEIGHT - FLOOR_HEIGHT - 10;
 const SHELF_HEIGHT = 18;
 const MAIN_PATH_SHELF_COUNT_MIN = 5;
@@ -223,6 +225,7 @@ class DishasterScene extends Phaser.Scene {
     this.score = 0;
     this.timeLeft = ROUND_TIME_SECONDS;
     this.gameEnded = false;
+    this.touchState = null;
   }
 
   preload() {
@@ -248,6 +251,7 @@ class DishasterScene extends Phaser.Scene {
 
     this.cursors = this.input.keyboard.createCursorKeys();
     this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+    this.setupTouchControls();
   }
 
   update() {
@@ -256,8 +260,8 @@ class DishasterScene extends Phaser.Scene {
       return;
     }
 
-    const moveLeft = this.cursors.left.isDown;
-    const moveRight = this.cursors.right.isDown;
+    const moveLeft = this.cursors.left.isDown || this.isTouchMovingLeft();
+    const moveRight = this.cursors.right.isDown || this.isTouchMovingRight();
 
     if (moveLeft) {
       this.player.setVelocityX(-PLAYER_SPEED);
@@ -269,13 +273,109 @@ class DishasterScene extends Phaser.Scene {
       this.player.setVelocityX(0);
     }
 
-    const jumpPressed = Phaser.Input.Keyboard.JustDown(this.cursors.up) || Phaser.Input.Keyboard.JustDown(this.spaceKey);
+    const jumpPressed = Phaser.Input.Keyboard.JustDown(this.cursors.up) ||
+      Phaser.Input.Keyboard.JustDown(this.spaceKey) ||
+      this.consumeTouchJump();
     if (jumpPressed && this.player.body.blocked.down) {
       this.player.setVelocityY(-JUMP_SPEED);
       soundPlayer.playJump();
     }
 
     this.checkFallingDishes();
+  }
+
+  setupTouchControls() {
+    this.touchState = {
+      pointerId: null,
+      startX: 0,
+      startY: 0,
+      currentX: 0,
+      currentY: 0,
+      moveDirection: 0,
+      jumpQueued: false,
+      jumpTriggered: false
+    };
+
+    this.input.on("pointerdown", this.handlePointerDown, this);
+    this.input.on("pointermove", this.handlePointerMove, this);
+    this.input.on("pointerup", this.handlePointerUp, this);
+    this.input.on("pointerupoutside", this.handlePointerUp, this);
+  }
+
+  handlePointerDown(pointer) {
+    if (this.gameEnded || this.touchState.pointerId !== null) {
+      return;
+    }
+
+    this.touchState.pointerId = pointer.id;
+    this.touchState.startX = pointer.x;
+    this.touchState.startY = pointer.y;
+    this.touchState.currentX = pointer.x;
+    this.touchState.currentY = pointer.y;
+    this.touchState.moveDirection = 0;
+    this.touchState.jumpQueued = false;
+    this.touchState.jumpTriggered = false;
+  }
+
+  handlePointerMove(pointer) {
+    if (this.gameEnded || this.touchState.pointerId !== pointer.id) {
+      return;
+    }
+
+    this.touchState.currentX = pointer.x;
+    this.touchState.currentY = pointer.y;
+
+    const deltaX = pointer.x - this.touchState.startX;
+    const deltaY = pointer.y - this.touchState.startY;
+
+    if (deltaX <= -TOUCH_MOVE_THRESHOLD) {
+      this.touchState.moveDirection = -1;
+    } else if (deltaX >= TOUCH_MOVE_THRESHOLD) {
+      this.touchState.moveDirection = 1;
+    } else {
+      this.touchState.moveDirection = 0;
+    }
+
+    if (deltaY <= -TOUCH_JUMP_THRESHOLD && !this.touchState.jumpTriggered) {
+      this.touchState.jumpQueued = true;
+      this.touchState.jumpTriggered = true;
+    }
+  }
+
+  handlePointerUp(pointer) {
+    if (this.touchState.pointerId !== pointer.id) {
+      return;
+    }
+
+    this.resetTouchState();
+  }
+
+  resetTouchState() {
+    if (!this.touchState) {
+      return;
+    }
+
+    this.touchState.pointerId = null;
+    this.touchState.moveDirection = 0;
+    this.touchState.jumpQueued = false;
+    this.touchState.jumpTriggered = false;
+  }
+
+  isTouchMovingLeft() {
+    return this.touchState?.moveDirection === -1;
+  }
+
+  isTouchMovingRight() {
+    return this.touchState?.moveDirection === 1;
+  }
+
+  consumeTouchJump() {
+    if (!this.touchState?.jumpQueued) {
+      return false;
+    }
+
+    this.touchState.jumpQueued = false;
+    return true;
   }
 
   createTextures() {
@@ -702,6 +802,7 @@ class DishasterScene extends Phaser.Scene {
     }
 
     this.gameEnded = true;
+    this.resetTouchState();
     this.gameTimer.remove(false);
     this.physics.world.pause();
     this.player.setTint(0xb5a18f);
