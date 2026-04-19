@@ -299,9 +299,9 @@ class DishasterScene extends Phaser.Scene {
   }
 
   setupNativeTouch() {
-    const canvas = this.game.canvas;
+    const touchSurface = document.getElementById("game-container") || this.game.canvas.parentElement || this.game.canvas;
 
-    canvas.addEventListener("touchstart", (event) => {
+    touchSurface.addEventListener("touchstart", (event) => {
       event.preventDefault();
 
       if (this.gameEnded || this.touchState.active || event.touches.length === 0) {
@@ -319,7 +319,7 @@ class DishasterScene extends Phaser.Scene {
       this.touchState.jumpTriggered = false;
     }, { passive: false });
 
-    canvas.addEventListener("touchmove", (event) => {
+    window.addEventListener("touchmove", (event) => {
       event.preventDefault();
 
       if (this.gameEnded || !this.touchState.active || event.touches.length === 0) {
@@ -355,8 +355,8 @@ class DishasterScene extends Phaser.Scene {
       this.resetTouchState();
     };
 
-    canvas.addEventListener("touchend", endTouch);
-    canvas.addEventListener("touchcancel", endTouch);
+    window.addEventListener("touchend", endTouch);
+    window.addEventListener("touchcancel", endTouch);
   }
 
   resetTouchState() {
