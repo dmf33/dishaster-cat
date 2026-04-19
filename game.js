@@ -304,6 +304,10 @@ class DishasterScene extends Phaser.Scene {
   }
 
   handlePointerDown(pointer) {
+    if (pointer.event) {
+      pointer.event.preventDefault();
+    }
+
     if (this.gameEnded || this.touchState.active) {
       return;
     }
@@ -319,6 +323,10 @@ class DishasterScene extends Phaser.Scene {
   }
 
   handlePointerMove(pointer) {
+    if (pointer.event) {
+      pointer.event.preventDefault();
+    }
+
     if (this.gameEnded || !this.touchState.active) {
       return;
     }
@@ -343,7 +351,11 @@ class DishasterScene extends Phaser.Scene {
     }
   }
 
-  handlePointerUp() {
+  handlePointerUp(pointer) {
+    if (pointer?.event) {
+      pointer.event.preventDefault();
+    }
+
     if (!this.touchState.active) {
       return;
     }
@@ -834,6 +846,12 @@ function startGame() {
     height: GAME_HEIGHT,
     parent: "game-container",
     backgroundColor: "#f7e4b7",
+    input: {
+      activePointers: 1,
+      touch: {
+        capture: true
+      }
+    },
     physics: {
       default: "arcade",
       arcade: {
