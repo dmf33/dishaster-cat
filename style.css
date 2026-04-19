@@ -18,6 +18,7 @@ body {
   min-height: 100vh;
   font-family: "Trebuchet MS", "Verdana", sans-serif;
   color: var(--ink);
+  overscroll-behavior: none;
   background:
     radial-gradient(circle at top, rgba(255, 255, 255, 0.55), transparent 42%),
     linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
@@ -81,12 +82,18 @@ body {
 .game-container {
   overflow: hidden;
   border-radius: 20px;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .game-container canvas {
   display: block;
   width: 100%;
   height: auto;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .overlay {

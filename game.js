@@ -286,7 +286,7 @@ class DishasterScene extends Phaser.Scene {
 
   setupTouchControls() {
     this.touchState = {
-      pointerId: null,
+      active: false,
       startX: 0,
       startY: 0,
       currentX: 0,
@@ -300,14 +300,15 @@ class DishasterScene extends Phaser.Scene {
     this.input.on("pointermove", this.handlePointerMove, this);
     this.input.on("pointerup", this.handlePointerUp, this);
     this.input.on("pointerupoutside", this.handlePointerUp, this);
+    this.input.on("pointercancel", this.handlePointerUp, this);
   }
 
   handlePointerDown(pointer) {
-    if (this.gameEnded || this.touchState.pointerId !== null) {
+    if (this.gameEnded || this.touchState.active) {
       return;
     }
 
-    this.touchState.pointerId = pointer.id;
+    this.touchState.active = true;
     this.touchState.startX = pointer.x;
     this.touchState.startY = pointer.y;
     this.touchState.currentX = pointer.x;
@@ -318,7 +319,7 @@ class DishasterScene extends Phaser.Scene {
   }
 
   handlePointerMove(pointer) {
-    if (this.gameEnded || this.touchState.pointerId !== pointer.id) {
+    if (this.gameEnded || !this.touchState.active) {
       return;
     }
 
@@ -342,8 +343,8 @@ class DishasterScene extends Phaser.Scene {
     }
   }
 
-  handlePointerUp(pointer) {
-    if (this.touchState.pointerId !== pointer.id) {
+  handlePointerUp() {
+    if (!this.touchState.active) {
       return;
     }
 
@@ -355,7 +356,7 @@ class DishasterScene extends Phaser.Scene {
       return;
     }
 
-    this.touchState.pointerId = null;
+    this.touchState.active = false;
     this.touchState.moveDirection = 0;
     this.touchState.jumpQueued = false;
     this.touchState.jumpTriggered = false;
