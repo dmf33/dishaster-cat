@@ -277,12 +277,19 @@ class DishasterScene extends Phaser.Scene {
       this.player.setVelocityX(0);
     }
 
+    const touchJumpPressed = this.consumeTouchJump();
+    if (touchJumpPressed) {
+      console.log("touch jump consumed");
+    }
+
     const jumpPressed = Phaser.Input.Keyboard.JustDown(this.cursors.up) ||
       Phaser.Input.Keyboard.JustDown(this.spaceKey) ||
-      this.consumeTouchJump();
+      touchJumpPressed;
     if (jumpPressed && this.player.body.blocked.down) {
       this.player.setVelocityY(-JUMP_SPEED);
       soundPlayer.playJump();
+    } else if (jumpPressed) {
+      console.log("jump requested but player not grounded");
     }
 
     this.checkFallingDishes();
@@ -378,12 +385,16 @@ class DishasterScene extends Phaser.Scene {
         return;
       }
 
+      console.log("jump button touchstart");
+      jumpButton.textContent = "JUMP!";
+      window.__dishasterDebugJump = true;
       this.touchState.jumpQueued = true;
       this.touchState.jumpTriggered = true;
     }, { passive: false });
 
     const releaseJump = (event) => {
       event.preventDefault();
+      jumpButton.textContent = "Jump";
       this.touchState.jumpTriggered = false;
     };
 
