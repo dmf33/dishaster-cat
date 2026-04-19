@@ -252,6 +252,7 @@ class DishasterScene extends Phaser.Scene {
     this.cursors = this.input.keyboard.createCursorKeys();
     this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
     this.setupTouchControls();
+    this.setupNativeTouch();
   }
 
   update() {
@@ -295,72 +296,67 @@ class DishasterScene extends Phaser.Scene {
       jumpQueued: false,
       jumpTriggered: false
     };
-
-    this.input.on("pointerdown", this.handlePointerDown, this);
-    this.input.on("pointermove", this.handlePointerMove, this);
-    this.input.on("pointerup", this.handlePointerUp, this);
-    this.input.on("pointerupoutside", this.handlePointerUp, this);
-    this.input.on("pointercancel", this.handlePointerUp, this);
   }
 
-  handlePointerDown(pointer) {
-    if (pointer.event) {
-      pointer.event.preventDefault();
-    }
+  setupNativeTouch() {
+    const canvas = this.game.canvas;
 
-    if (this.gameEnded || this.touchState.active) {
-      return;
-    }
+    canvas.addEventListener("touchstart", (event) => {
+      event.preventDefault();
 
-    this.touchState.active = true;
-    this.touchState.startX = pointer.x;
-    this.touchState.startY = pointer.y;
-    this.touchState.currentX = pointer.x;
-    this.touchState.currentY = pointer.y;
-    this.touchState.moveDirection = 0;
-    this.touchState.jumpQueued = false;
-    this.touchState.jumpTriggered = false;
-  }
+      if (this.gameEnded || this.touchState.active || event.touches.length === 0) {
+        return;
+      }
 
-  handlePointerMove(pointer) {
-    if (pointer.event) {
-      pointer.event.preventDefault();
-    }
-
-    if (this.gameEnded || !this.touchState.active) {
-      return;
-    }
-
-    this.touchState.currentX = pointer.x;
-    this.touchState.currentY = pointer.y;
-
-    const deltaX = pointer.x - this.touchState.startX;
-    const deltaY = pointer.y - this.touchState.startY;
-
-    if (deltaX <= -TOUCH_MOVE_THRESHOLD) {
-      this.touchState.moveDirection = -1;
-    } else if (deltaX >= TOUCH_MOVE_THRESHOLD) {
-      this.touchState.moveDirection = 1;
-    } else {
+      const touch = event.touches[0];
+      this.touchState.active = true;
+      this.touchState.startX = touch.clientX;
+      this.touchState.startY = touch.clientY;
+      this.touchState.currentX = touch.clientX;
+      this.touchState.currentY = touch.clientY;
       this.touchState.moveDirection = 0;
-    }
+      this.touchState.jumpQueued = false;
+      this.touchState.jumpTriggered = false;
+    }, { passive: false });
 
-    if (deltaY <= -TOUCH_JUMP_THRESHOLD && !this.touchState.jumpTriggered) {
-      this.touchState.jumpQueued = true;
-      this.touchState.jumpTriggered = true;
-    }
-  }
+    canvas.addEventListener("touchmove", (event) => {
+      event.preventDefault();
 
-  handlePointerUp(pointer) {
-    if (pointer?.event) {
-      pointer.event.preventDefault();
-    }
+      if (this.gameEnded || !this.touchState.active || event.touches.length === 0) {
+        return;
+      }
 
-    if (!this.touchState.active) {
-      return;
-    }
+      const touch = event.touches[0];
+      this.touchState.currentX = touch.clientX;
+      this.touchState.currentY = touch.clientY;
 
-    this.resetTouchState();
+      const deltaX = touch.clientX - this.touchState.startX;
+      const deltaY = touch.clientY - this.touchState.startY;
+
+      if (deltaX <= -TOUCH_MOVE_THRESHOLD) {
+        this.touchState.moveDirection = -1;
+      } else if (deltaX >= TOUCH_MOVE_THRESHOLD) {
+        this.touchState.moveDirection = 1;
+      } else {
+        this.touchState.moveDirection = 0;
+      }
+
+      if (deltaY <= -TOUCH_JUMP_THRESHOLD && !this.touchState.jumpTriggered) {
+        this.touchState.jumpQueued = true;
+        this.touchState.jumpTriggered = true;
+      }
+    }, { passive: false });
+
+    const endTouch = () => {
+      if (!this.touchState.active) {
+        return;
+      }
+
+      this.resetTouchState();
+    };
+
+    canvas.addEventListener("touchend", endTouch);
+    canvas.addEventListener("touchcancel", endTouch);
   }
 
   resetTouchState() {
