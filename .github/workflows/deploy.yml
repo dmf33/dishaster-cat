@@ -10,32 +10,24 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Prepare target directory on server
+      - name: Deploy on server via git pull
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSH_KEY }}
           script: |
-            mkdir -p /var/www/html/dishaster-cat
+            set -e
 
-      - name: Copy project files to server
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.SSH_KEY }}
-          source: "index.html,style.css,game.js,assets"
-          target: "/var/www/html/dishaster-cat"
+            TARGET_DIR="/var/www/html/dishaster-cat"
 
-      - name: Fix permissions
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.SSH_KEY }}
-          script: |
-            chmod -R 755 /var/www/html/dishaster-cat
+            if [ ! -d "$TARGET_DIR/.git" ]; then
+              rm -rf "$TARGET_DIR"
+              git clone https://github.com/dmf33/dishaster-cat.git "$TARGET_DIR"
+            else
+              cd "$TARGET_DIR"
+              git fetch origin main
+              git reset --hard origin/main
+            fi
+
+            chmod -R 755 "$TARGET_DIR"
