@@ -5,6 +5,9 @@ const overlayEyebrow = document.getElementById("overlay-eyebrow");
 const overlayTitle = document.getElementById("overlay-title");
 const finalScore = document.getElementById("final-score");
 const restartButton = document.getElementById("restart-button");
+const joystickPad = document.getElementById("joystick-pad");
+const joystickKnob = document.getElementById("joystick-knob");
+const jumpButton = document.getElementById("jump-button");
 
 const GAME_WIDTH = 900;
 const GAME_HEIGHT = 540;
@@ -252,7 +255,7 @@ class DishasterScene extends Phaser.Scene {
     this.cursors = this.input.keyboard.createCursorKeys();
     this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
     this.setupTouchControls();
-    this.setupNativeTouch();
+    this.setupVirtualControls();
   }
 
   update() {
@@ -298,13 +301,45 @@ class DishasterScene extends Phaser.Scene {
     };
   }
 
-  setupNativeTouch() {
-    const touchSurface = document.getElementById("game-container") || this.game.canvas.parentElement || this.game.canvas;
+  setupVirtualControls() {
+    if (!joystickPad || !jumpButton) {
+      return;
+    }
 
-    touchSurface.addEventListener("touchstart", (event) => {
+    const updateJoystick = (touch) => {
+      if (this.gameEnded || !this.touchState.active) {
+        return;
+      }
+
+      const rect = joystickPad.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const maxOffset = rect.width * 0.24;
+      const deltaX = touch.clientX - centerX;
+      const deltaY = touch.clientY - centerY;
+
+      this.touchState.currentX = touch.clientX;
+      this.touchState.currentY = touch.clientY;
+
+      if (deltaX <= -TOUCH_MOVE_THRESHOLD) {
+        this.touchState.moveDirection = -1;
+      } else if (deltaX >= TOUCH_MOVE_THRESHOLD) {
+        this.touchState.moveDirection = 1;
+      } else {
+        this.touchState.moveDirection = 0;
+      }
+
+      if (joystickKnob) {
+        const knobX = Phaser.Math.Clamp(deltaX, -maxOffset, maxOffset);
+        const knobY = Phaser.Math.Clamp(deltaY, -maxOffset * 0.5, maxOffset * 0.5);
+        joystickKnob.style.transform = `translate(${knobX}px, ${knobY}px)`;
+      }
+    };
+
+    joystickPad.addEventListener("touchstart", (event) => {
       event.preventDefault();
 
-      if (this.gameEnded || this.touchState.active || event.touches.length === 0) {
+      if (this.gameEnded || event.touches.length === 0) {
         return;
       }
 
@@ -315,48 +350,45 @@ class DishasterScene extends Phaser.Scene {
       this.touchState.currentX = touch.clientX;
       this.touchState.currentY = touch.clientY;
       this.touchState.moveDirection = 0;
-      this.touchState.jumpQueued = false;
-      this.touchState.jumpTriggered = false;
+      updateJoystick(touch);
     }, { passive: false });
 
-    window.addEventListener("touchmove", (event) => {
+    joystickPad.addEventListener("touchmove", (event) => {
       event.preventDefault();
 
-      if (this.gameEnded || !this.touchState.active || event.touches.length === 0) {
+      if (event.touches.length === 0) {
         return;
       }
 
-      const touch = event.touches[0];
-      this.touchState.currentX = touch.clientX;
-      this.touchState.currentY = touch.clientY;
-
-      const deltaX = touch.clientX - this.touchState.startX;
-      const deltaY = touch.clientY - this.touchState.startY;
-
-      if (deltaX <= -TOUCH_MOVE_THRESHOLD) {
-        this.touchState.moveDirection = -1;
-      } else if (deltaX >= TOUCH_MOVE_THRESHOLD) {
-        this.touchState.moveDirection = 1;
-      } else {
-        this.touchState.moveDirection = 0;
-      }
-
-      if (deltaY <= -TOUCH_JUMP_THRESHOLD && !this.touchState.jumpTriggered) {
-        this.touchState.jumpQueued = true;
-        this.touchState.jumpTriggered = true;
-      }
+      updateJoystick(event.touches[0]);
     }, { passive: false });
 
-    const endTouch = () => {
-      if (!this.touchState.active) {
-        return;
-      }
-
+    const endJoystick = (event) => {
+      event.preventDefault();
       this.resetTouchState();
     };
 
-    window.addEventListener("touchend", endTouch);
-    window.addEventListener("touchcancel", endTouch);
+    joystickPad.addEventListener("touchend", endJoystick);
+    joystickPad.addEventListener("touchcancel", endJoystick);
+
+    jumpButton.addEventListener("touchstart", (event) => {
+      event.preventDefault();
+
+      if (this.gameEnded || this.touchState.jumpTriggered) {
+        return;
+      }
+
+      this.touchState.jumpQueued = true;
+      this.touchState.jumpTriggered = true;
+    }, { passive: false });
+
+    const releaseJump = (event) => {
+      event.preventDefault();
+      this.touchState.jumpTriggered = false;
+    };
+
+    jumpButton.addEventListener("touchend", releaseJump);
+    jumpButton.addEventListener("touchcancel", releaseJump);
   }
 
   resetTouchState() {
@@ -368,6 +400,10 @@ class DishasterScene extends Phaser.Scene {
     this.touchState.moveDirection = 0;
     this.touchState.jumpQueued = false;
     this.touchState.jumpTriggered = false;
+
+    if (joystickKnob) {
+      joystickKnob.style.transform = "translate(0, 0)";
+    }
   }
 
   isTouchMovingLeft() {
